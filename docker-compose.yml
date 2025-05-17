@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  scylla:
+    image: scylladb/scylla:latest
+    ports:
+      - "9042:9042"
+    environment:
+      - SCYLLA_CLUSTER_NAME=my-scylla-cluster
+      - SCYLLA_SEEDS=scylla
+    command: --smp 1 --memory 512M --overprovisioned 1
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
