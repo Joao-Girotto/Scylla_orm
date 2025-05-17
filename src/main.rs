@@ -1,6 +1,35 @@
 use scylla_orm::orm::db;
 use scylla_orm::orm::query_builder;
 use scylla_orm::models::cliente::Cliente;
+use scylla::IntoTypedRows;
+
+
+async fn listar_clientes(session: &scylla::Session) {
+    let query = query_builder::select_all::<Cliente>();
+    match session.query(query, &[]).await {
+        Ok(result) => {
+            if let Some(rows) = result.rows {
+                for row in rows.into_typed::<(i32, String, String)>() {
+                    match row {
+                        Ok((id, nome, email)) => {
+                            println!("Cliente ID: {}, Nome: {}, Email: {}", id, nome, email);
+                        }
+                        Err(e) => {
+                            println!("Erro ao converter linha: {}", e);
+                        }
+                    }
+                }
+            } else {
+                println!("Nenhum dado encontrado.");
+            }
+        }
+        Err(e) => {
+            println!("Erro ao executar SELECT: {}", e);
+        }
+    }
+}
+
+
 
 #[tokio::main]
 async fn main() {
@@ -25,4 +54,5 @@ async fn main() {
     };
     let insert = query_builder::insert(&cliente);
     db::executar_query(&session, &insert).await;
+    listar_clientes(&session).await;
 }

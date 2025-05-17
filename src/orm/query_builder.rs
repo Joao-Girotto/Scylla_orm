@@ -32,3 +32,7 @@ pub fn select_by_id<T: Entity>(id: i32) -> String {
     let table = T::table_name();
     format!("SELECT * FROM {} WHERE id = {};", table, id)
 }
+
+pub fn select_all<T: Entity>() -> String {
+    format!("SELECT * FROM {};", T::table_name())
+}
