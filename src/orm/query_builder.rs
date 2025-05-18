@@ -23,6 +23,24 @@ pub fn insert<T: Entity>(entity: &T) -> String {
     format!("INSERT INTO {} ({}) VALUES ({});", table, fields, values)
 }
 
+
+pub fn update_by_id<T: Entity>(entity: &T, id: i32) -> String {
+    let updates: Vec<String> = entity
+        .update_values()
+        .into_iter()
+        .map(|(campo, valor)| format!("{} = {}", campo, valor))
+        .collect();
+
+    format!(
+        "UPDATE {} SET {} WHERE {} = {};",
+        T::table_name(),
+        updates.join(", "),
+        T::primary_key(),
+        id
+    )
+}
+
+
 pub fn delete_by_id<T: Entity>(id: i32) -> String {
     let table = T::table_name();
     format!("DELETE FROM {} WHERE id = {};", table, id)
