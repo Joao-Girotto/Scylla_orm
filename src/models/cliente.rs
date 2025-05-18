@@ -23,6 +23,13 @@ impl Entity for Cliente {
         ]
     }
 
+    fn update_values(&self) -> Vec<(String, String)> {
+        vec![
+            ("nome".to_string(), format!("'{}'", self.nome)),
+            ("email".to_string(), format!("'{}'", self.email)),
+            ]
+    }
+
     fn field_definitions() -> Vec<(&'static str, &'static str)> {
         vec![
             ("id", "int"),
