@@ -1,9 +1,12 @@
+// IMPORTS
 use scylla_orm::orm::db;
 use scylla_orm::orm::query_builder;
 use scylla_orm::models::cliente::Cliente;
+use scylla_orm::models::evento::Evento;
+use scylla_orm::models::produto::Produto;
 use scylla::IntoTypedRows;
 
-
+// --- FUNÇÕES DE LISTAGEM ---
 async fn listar_clientes(session: &scylla::Session) {
     let query = query_builder::select_all::<Cliente>();
     match session.query(query, &[]).await {
@@ -14,64 +17,158 @@ async fn listar_clientes(session: &scylla::Session) {
                         Ok((id, nome, email)) => {
                             println!("Cliente ID: {}, Nome: {}, Email: {}", id, email, nome);
                         }
-                        Err(e) => {
-                            println!("Erro ao converter linha: {}", e);
-                        }
+                        Err(e) => println!("Erro ao converter linha: {}", e),
                     }
                 }
             } else {
-                println!("Nenhum dado encontrado.");
+                println!("Nenhum cliente encontrado.");
             }
         }
-        Err(e) => {
-            println!("Erro ao executar SELECT: {}", e);
-        }
+        Err(e) => println!("Erro ao listar clientes: {}", e),
     }
 }
 
+async fn listar_produtos(session: &scylla::Session) {
+    let query = query_builder::select_all::<Produto>();
+    match session.query(query, &[]).await {
+        Ok(result) => {
+            if let Some(rows) = result.rows {
+                for row in rows.into_typed::<(i32, String, f64)>() {
+                    match row {
+                        Ok((id, nome, preco)) => {
+                            println!("Produto ID: {}, Nome: {}, Preço: {}", id, nome, preco);
+                        }
+                        Err(e) => println!("Erro ao converter linha: {}", e),
+                    }
+                }
+            } else {
+                println!("Nenhum produto encontrado.");
+            }
+        }
+        Err(e) => println!("Erro ao listar produtos: {}", e),
+    }
+}
 
+async fn listar_eventos(session: &scylla::Session) {
+    let query = query_builder::select_all::<Evento>();
+    match session.query(query, &[]).await {
+        Ok(result) => {
+            if let Some(rows) = result.rows {
+                for row in rows.into_typed::<(i32, String, String)>() {
+                    match row {
+                        Ok((id, titulo, data)) => {
+                            println!("Evento ID: {}, Título: {}, Data: {}", id, titulo, data);
+                        }
+                        Err(e) => println!("Erro ao converter linha: {}", e),
+                    }
+                }
+            } else {
+                println!("Nenhum evento encontrado.");
+            }
+        }
+        Err(e) => println!("Erro ao listar eventos: {}", e),
+    }
+}
 
 #[tokio::main]
 async fn main() {
+    // Conexão e inicialização
     let session = db::connect("127.0.0.1:9042").await;
-
-    // Criar keyspace se ainda não existir
     db::init_keyspace(&session, "meu_keyspace").await;
 
-    // Não precisa usar `USE`, pois o keyspace está embutido nas queries
+    // Criação das tabelas
+    db::executar_query(&session, &query_builder::create_table::<Cliente>()).await;
+    db::executar_query(&session, &query_builder::create_table::<Produto>()).await;
+    db::executar_query(&session, &query_builder::create_table::<Evento>()).await;
 
-    let create = query_builder::create_table::<Cliente>();
-    db::executar_query(&session, &create).await;
-
+    // --- TESTES DE CRUD: CLIENTE ---
     let cliente = Cliente {
         id: 1,
         nome: "João".to_string(),
         email: "joao@email.com".to_string(),
     };
-
-
-    let cliente_one = Cliente {
-        id: 2,
-        nome: "Marcos".to_string(),
-        email: "marcos@email.com".to_string(),
+    let cliente_para_update = Cliente {
+        id: 1,
+        nome: "Marcio".to_string(),
+        email: "marcio@email.com".to_string(),
+    };
+     let cliente_extra = Cliente {
+        id: 3,
+        nome: "Teste".to_string(),
+        email: "teste@email.com".to_string(),
     };
 
-    let cliente_atualizado = Cliente {
-        id: 2,
-        nome: "Rodrigo Hubner".to_string(),
-        email: "rhubner@email.com".to_string(),
-    };
 
-    let insert1 = query_builder::insert(&cliente_one);
-    db::executar_query(&session, &insert1).await;
-
-    let update = query_builder::update_by_id(&cliente_atualizado, cliente_atualizado.id);
-    db::executar_query(&session, &update).await;
-
-    // Deletar cliente
-    let insert = query_builder::insert(&cliente);
-    let delete = query_builder::delete_by_id::<Cliente>(1);
-    db::executar_query(&session, &insert).await;
-    db::executar_query(&session, &delete).await;
+    db::executar_query(&session, &query_builder::insert(&cliente)).await;         // INSERT
+    db::executar_query(&session, &query_builder::insert(&cliente_extra)).await;         // INSERT
+    println!("LISTAGEM clientes inseridos");
     listar_clientes(&session).await;
+    println!("\n");
+
+    db::executar_query(&session, &query_builder::update_by_id(&cliente_para_update, 1)).await; // UPDATE
+    db::executar_query(&session, &query_builder::delete_by_id::<Cliente>(3)).await;     // DELETE
+    println!("LISTAGEM de clientes atualizados e deletado");
+    listar_clientes(&session).await;
+    println!("\n");
+
+
+    // --- TESTES DE CRUD: PRODUTO ---
+    let produto = Produto {
+        id: 1,
+        nome: "Notebook".to_string(),
+        preco: 4999.90,
+    };
+    let produto_extra = Produto {
+        id: 2,
+        nome: "Monitor".to_string(),
+        preco: 999.99,
+    };
+    let produto_atualizado = Produto {
+        id: 2,
+        nome: "Monitor Gamer".to_string(),
+        preco: 1299.99,
+    };
+
+    db::executar_query(&session, &query_builder::insert(&produto_extra)).await;
+    db::executar_query(&session, &query_builder::insert(&produto)).await;
+    println!("LISTAGEM de produtos inseridos");
+    listar_produtos(&session).await;
+    println!("\n");
+
+
+    db::executar_query(&session, &query_builder::delete_by_id::<Produto>(1)).await;
+    db::executar_query(&session, &query_builder::update_by_id(&produto_atualizado, 2)).await;
+    println!("LISTAGEM de produtos atualizados e deletado");
+    listar_produtos(&session).await;
+    println!("\n");
+
+    
+    // --- TESTES DE CRUD: EVENTO ---
+    let evento = Evento {
+        id: 1,
+        titulo: "Aniversário".to_string(),
+        data: "2025-05-10".to_string(),
+    };
+    let evento_extra = Evento {
+        id: 2,
+        titulo: "Reunião".to_string(),
+        data: "2025-06-15".to_string(),
+    };
+    let evento_atualizado = Evento {
+        id: 2,
+        titulo: "Reunião Final".to_string(),
+        data: "2025-06-30".to_string(),
+    };
+ 
+
+    db::executar_query(&session, &query_builder::insert(&evento_extra)).await;
+    db::executar_query(&session, &query_builder::insert(&evento)).await;
+    println!("LISTAGEM de eventos inseridos");
+    listar_eventos(&session).await;
+    println!("\n");
+
+    db::executar_query(&session, &query_builder::delete_by_id::<Evento>(1)).await;
+    db::executar_query(&session, &query_builder::update_by_id(&evento_atualizado, 2)).await;
+    println!("LISTAGEM de eventos atualizado e deletado");
+    listar_eventos(&session).await;
 }
