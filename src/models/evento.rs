@@ -1,4 +1,5 @@
 use crate::orm::entity::Entity;
+use crate::orm::entity::Listable;
 
 pub struct Evento {
     pub id: i32,
@@ -40,5 +41,14 @@ impl Entity for Evento {
 
     fn primary_key() -> &'static str {
         "id"
+    }
+}
+
+
+impl Listable for Evento {
+    type Row = (i32, String, String); // id, titulo, data
+
+    fn format_row((id, titulo, data): Self::Row) {
+        println!("Evento ID: {}, Título: {}, Data: {}", id, titulo, data);
     }
 }

@@ -10,3 +10,9 @@ pub trait Entity {
     /// Nome da coluna que é chave primária
     fn primary_key() -> &'static str;
 }
+
+pub trait Listable: Entity {
+    type Row: scylla::FromRow;
+
+    fn format_row(row: Self::Row);
+}

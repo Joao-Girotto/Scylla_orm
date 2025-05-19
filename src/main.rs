@@ -1,72 +1,32 @@
 // IMPORTS
 use scylla_orm::orm::db;
 use scylla_orm::orm::query_builder;
+use scylla::Session;
 use scylla_orm::models::cliente::Cliente;
 use scylla_orm::models::evento::Evento;
 use scylla_orm::models::produto::Produto;
+use scylla_orm::orm::entity::Listable;
 use scylla::IntoTypedRows;
 
-// --- FUNÇÕES DE LISTAGEM ---
-async fn listar_clientes(session: &scylla::Session) {
-    let query = query_builder::select_all::<Cliente>();
-    match session.query(query, &[]).await {
-        Ok(result) => {
-            if let Some(rows) = result.rows {
-                for row in rows.into_typed::<(i32, String, String)>() {
-                    match row {
-                        Ok((id, nome, email)) => {
-                            println!("Cliente ID: {}, Nome: {}, Email: {}", id, email, nome);
-                        }
-                        Err(e) => println!("Erro ao converter linha: {}", e),
-                    }
-                }
-            } else {
-                println!("Nenhum cliente encontrado.");
-            }
-        }
-        Err(e) => println!("Erro ao listar clientes: {}", e),
-    }
-}
+//Função para listar entidades
+// Essa função é genérica e pode ser usada para qualquer entidade que implemente o trait Listable
+pub async fn listar_entidades<T: Listable>(session: &Session) {
+    let query = query_builder::select_all::<T>();
 
-async fn listar_produtos(session: &scylla::Session) {
-    let query = query_builder::select_all::<Produto>();
     match session.query(query, &[]).await {
         Ok(result) => {
             if let Some(rows) = result.rows {
-                for row in rows.into_typed::<(i32, String, f64)>() {
+                for row in rows.into_typed::<T::Row>() {
                     match row {
-                        Ok((id, nome, preco)) => {
-                            println!("Produto ID: {}, Nome: {}, Preço: {}", id, nome, preco);
-                        }
+                        Ok(data) => T::format_row(data),
                         Err(e) => println!("Erro ao converter linha: {}", e),
                     }
                 }
             } else {
-                println!("Nenhum produto encontrado.");
+                println!("Nenhum registro encontrado para a tabela {}", T::table_name());
             }
         }
-        Err(e) => println!("Erro ao listar produtos: {}", e),
-    }
-}
-
-async fn listar_eventos(session: &scylla::Session) {
-    let query = query_builder::select_all::<Evento>();
-    match session.query(query, &[]).await {
-        Ok(result) => {
-            if let Some(rows) = result.rows {
-                for row in rows.into_typed::<(i32, String, String)>() {
-                    match row {
-                        Ok((id, titulo, data)) => {
-                            println!("Evento ID: {}, Título: {}, Data: {}", id, titulo, data);
-                        }
-                        Err(e) => println!("Erro ao converter linha: {}", e),
-                    }
-                }
-            } else {
-                println!("Nenhum evento encontrado.");
-            }
-        }
-        Err(e) => println!("Erro ao listar eventos: {}", e),
+        Err(e) => println!("Erro ao listar {}: {}", T::table_name(), e),
     }
 }
 
@@ -102,13 +62,13 @@ async fn main() {
     db::executar_query(&session, &query_builder::insert(&cliente)).await;         // INSERT
     db::executar_query(&session, &query_builder::insert(&cliente_extra)).await;         // INSERT
     println!("LISTAGEM clientes inseridos");
-    listar_clientes(&session).await;
+    listar_entidades::<Cliente>(&session).await;
     println!("\n");
 
     db::executar_query(&session, &query_builder::update_by_id(&cliente_para_update, 1)).await; // UPDATE
     db::executar_query(&session, &query_builder::delete_by_id::<Cliente>(3)).await;     // DELETE
     println!("LISTAGEM de clientes atualizados e deletado");
-    listar_clientes(&session).await;
+    listar_entidades::<Cliente>(&session).await;
     println!("\n");
 
 
@@ -132,14 +92,14 @@ async fn main() {
     db::executar_query(&session, &query_builder::insert(&produto_extra)).await;
     db::executar_query(&session, &query_builder::insert(&produto)).await;
     println!("LISTAGEM de produtos inseridos");
-    listar_produtos(&session).await;
+    listar_entidades::<Produto>(&session).await;
     println!("\n");
 
 
     db::executar_query(&session, &query_builder::delete_by_id::<Produto>(1)).await;
     db::executar_query(&session, &query_builder::update_by_id(&produto_atualizado, 2)).await;
     println!("LISTAGEM de produtos atualizados e deletado");
-    listar_produtos(&session).await;
+    listar_entidades::<Produto>(&session).await;
     println!("\n");
 
     
@@ -164,11 +124,11 @@ async fn main() {
     db::executar_query(&session, &query_builder::insert(&evento_extra)).await;
     db::executar_query(&session, &query_builder::insert(&evento)).await;
     println!("LISTAGEM de eventos inseridos");
-    listar_eventos(&session).await;
+    listar_entidades::<Evento>(&session).await;
     println!("\n");
 
     db::executar_query(&session, &query_builder::delete_by_id::<Evento>(1)).await;
     db::executar_query(&session, &query_builder::update_by_id(&evento_atualizado, 2)).await;
     println!("LISTAGEM de eventos atualizado e deletado");
-    listar_eventos(&session).await;
+    listar_entidades::<Evento>(&session).await;
 }

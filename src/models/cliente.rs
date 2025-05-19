@@ -1,4 +1,5 @@
 use crate::orm::entity::Entity;
+use crate::orm::entity::Listable;
 
 pub struct Cliente {
     pub id: i32,
@@ -40,5 +41,15 @@ impl Entity for Cliente {
 
     fn primary_key() -> &'static str {
         "id"
+    }
+
+    
+}
+
+impl Listable for Cliente {
+    type Row = (i32, String, String);
+
+    fn format_row((id, nome, email): Self::Row) {
+        println!("Cliente ID: {}, Nome: {}, Email: {}", id, nome, email);
     }
 }
