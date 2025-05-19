@@ -61,3 +61,8 @@ O SeaORM é um ORM moderno e assíncrono para Rust que visa produtividade e faci
 
 ### Scylla Orm
 Ao contrário de frameworks como Diesel e SeaORM, que priorizam automação e abstração via macros, geração de código e ferramentas externas, o scylla_orm adota uma abordagem manual, explícita e leve, voltada à compreensão profunda dos mecanismos de mapeamento objeto-banco. Enquanto o Diesel valida queries SQL em tempo de compilação e o SeaORM oferece APIs fluentes com suporte a múltiplos bancos relacionais, ambos se baseiam em bancos SQL tradicionais e têm pouca ou nenhuma compatibilidade com bancos NoSQL columnar como o ScyllaDB. Já o scylla_orm foi projetado especificamente para funcionar com ScyllaDB, e usa traits e generics para definir comportamento comum entre entidades, sem esconder a lógica de persistência do desenvolvedor. Essa escolha torna o framework altamente educacional, além de manter o código enxuto, transparente e fácil de estender, mesmo que sacrifique parte da conveniência presente em ORMs mais robustos.
+
+## Contributors
+
+João Vitor Girotto  
+Lucas dos Santos Vaz
