@@ -36,11 +36,7 @@ async fn main() {
     let session = db::connect("127.0.0.1:9042").await;
 
     // Criar keyspace se ainda não existir
-    let create_keyspace = "
-        CREATE KEYSPACE IF NOT EXISTS meu_keyspace
-        WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-    ";
-    db::executar_query(&session, create_keyspace).await;
+    db::init_keyspace(&session, "meu_keyspace").await;
 
     // Não precisa usar `USE`, pois o keyspace está embutido nas queries
 
@@ -65,13 +61,17 @@ async fn main() {
         nome: "Rodrigo Hubner".to_string(),
         email: "rhubner@email.com".to_string(),
     };
+
+    let insert1 = query_builder::insert(&cliente_one);
+    db::executar_query(&session, &insert1).await;
+
     let update = query_builder::update_by_id(&cliente_atualizado, cliente_atualizado.id);
     db::executar_query(&session, &update).await;
 
     // Deletar cliente
-    let delete = query_builder::delete_by_id::<Cliente>(1);
-    db::executar_query(&session, &delete).await;
     let insert = query_builder::insert(&cliente);
+    let delete = query_builder::delete_by_id::<Cliente>(1);
     db::executar_query(&session, &insert).await;
+    db::executar_query(&session, &delete).await;
     listar_clientes(&session).await;
 }

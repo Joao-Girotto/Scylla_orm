@@ -13,3 +13,16 @@ pub async fn executar_query(session: &Session, query: &str) {
         eprintln!("Erro ao executar query: {}", e);
     }
 }
+
+
+pub async fn init_keyspace(session: &Session, keyspace: &str) {
+    let query = format!(
+        "CREATE KEYSPACE IF NOT EXISTS {} \
+         WITH replication = {{ 'class': 'SimpleStrategy', 'replication_factor': 1 }};",
+        keyspace
+    );
+
+    if let Err(e) = session.query(query, &[]).await {
+        eprintln!("Erro ao criar keyspace {}: {}", keyspace, e);
+    }
+}
